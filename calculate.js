@@ -388,6 +388,38 @@ function createCalculator(size, d = 20) {
         return [Yre, Yim];
     }
 
+    // Check orthogonality of a set of column vectors. Accepts arrays of Float64Array columns.
+    // If matIm is null, treats vectors as real. Returns {maxOverlap, pair, isOrthogonal}.
+    function checkOrthogonality(matRe, matIm = null, tol = 1e-8) {
+        const cols = matRe.length;
+        if (cols === 0) return { maxOverlap: 0, pair: [0, 0], isOrthogonal: true };
+        const n = matRe[0].length;
+        let maxOverlap = 0;
+        let maxPair = [0, 0];
+
+        for (let p = 0; p < cols; p++) {
+            for (let q = p + 1; q < cols; q++) {
+                let realDot = 0.0;
+                let imagDot = 0.0;
+                for (let k = 0; k < n; k++) {
+                    const ar = matRe[p][k];
+                    const br = matRe[q][k];
+                    const ai = matIm ? matIm[p][k] : 0.0;
+                    const bi = matIm ? matIm[q][k] : 0.0;
+                    realDot += ar * br + ai * bi;
+                    imagDot += ar * bi - ai * br;
+                }
+                const mag = Math.hypot(realDot, imagDot);
+                if (mag > maxOverlap) {
+                    maxOverlap = mag;
+                    maxPair = [p, q];
+                }
+            }
+        }
+
+        return { maxOverlap, pair: maxPair, isOrthogonal: maxOverlap <= tol };
+    }
+
     return {
         gaussian,
         createHamiltonian,
@@ -402,6 +434,7 @@ function createCalculator(size, d = 20) {
         size,
         d,
         MM,
+        checkOrthogonality,
     };
 }
 
