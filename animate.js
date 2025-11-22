@@ -1,7 +1,12 @@
 const ctx = document.getElementById('myChart');
 
+// create a calculator instance bound to a specific size
+const CalcSize = 512; 
+const CalcDim = 20;
+const calc = window.createCalculator(CalcSize, CalcDim);
+
 const Xaxis = [];
-for(let i = 0; i < size; i++) {
+for(let i = 0; i < calc.size; i++) {
     Xaxis.push(i);
 }
 
@@ -19,13 +24,13 @@ const plot = new Chart(ctx, {
         labels: Xaxis,
         datasets: [{
             label: 'Real',
-            data: new Array(size).fill(0)
+            data: new Array(calc.size).fill(0)
         },{
             label: 'Imaginary',
-            data: new Array(size).fill(0)
+            data: new Array(calc.size).fill(0)
         },{
             label: 'Potential',
-            data: new Array(size).fill(0)
+            data: new Array(calc.size).fill(0)
         }]
     },
     options: {
@@ -57,19 +62,26 @@ let V = null;
 let mainInitializer = null; 
 
 function buildPotential(name) {
-    const V = new Float64Array(size);
+    const n = calc.size;
+    const V = new Float64Array(n);
     if (name === 'free') {
         V.fill(0);
     } else if (name === 'low') {
         V.fill(0);
-        V.fill(0.5, 270, 280);
+        const a = Math.floor(n * 0.52734375); // ~270/512
+        const b = Math.floor(n * 0.546875); // ~280/512
+        V.fill(0.5, a, b);
     } else if (name === 'high') {
         V.fill(0);
-        V.fill(1, 270, 280);
+        const a = Math.floor(n * 0.52734375);
+        const b = Math.floor(n * 0.546875);
+        V.fill(1, a, b);
     } else if (name === 'well') {
         V.fill(0.0);
-        V.fill(1, 0, 156);
-        V.fill(1, 356, 512);
+        const a = Math.floor(n * 0.3046875); // ~156/512
+        const b = Math.floor(n * 0.6953125); // ~356/512
+        V.fill(1, 0, a);
+        V.fill(1, b, n);
     }
     return V;
 }
@@ -89,7 +101,7 @@ function updatePreview() {
     if (running) return;
     readControls();
     V = buildPotential(controlVtype);
-    const preview = gaussian(controlX, controlP, controlS);
+    const preview = calc.gaussian(controlX, controlP, controlS);
     // update chart datasets
     plot.data.datasets[0].data = Array.from(preview[0]);
     plot.data.datasets[1].data = Array.from(preview[1]);
@@ -113,7 +125,7 @@ function startSimulation() {
 
     // initialize Lanczos for first batch with current state, potential
     const potential = V || buildPotential(controlVtype);
-    mainInitializer = InitializeLanczos(state, M, potential); 
+    mainInitializer = calc.InitializeLanczos(state, M, potential); 
 
     step = 0;
     totalTime = 0;
@@ -124,7 +136,7 @@ function startSimulation() {
 
     interval = setInterval(() => {
         // Propagate by one tStep each frame
-        const currentState = evolveLanczos(mainInitializer, step * dt);
+        const currentState = calc.evolveLanczos(mainInitializer, step * dt);
 
         // Render
         plot.data.datasets[0].data = Array.from(currentState[0]);
@@ -134,7 +146,7 @@ function startSimulation() {
 
         // Every batchSteps replace with the nextbatch
         if (step >= batchSteps) {
-            mainInitializer = InitializeLanczos(currentState, M, potential);
+            mainInitializer = calc.InitializeLanczos(currentState, M, potential);
             step = 0;
         } else {
             step ++;
