@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Schrödinger Equation Simulation</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.8.1/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src = "calculate.js"> </script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css" 
+        integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi" 
+        crossorigin="anonymous">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js" 
+        integrity="sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ" 
+        crossorigin="anonymous"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js" 
+        integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" 
+        crossorigin="anonymous" 
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <header>
+        <h1>1D Schrödinger Equation Simulation</h1>
+    </header>
+    <div class="sidebar">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><h1>Physics Simulations<h1></li>
+            <li><a href="schrodinger1d.html">1D Schrodinger with Lanczos</a></li>
+            <li><h1>Other<h1></li>
+            <li><a href="about.html">Something else</a></li>
+        </ul>
+    </div>
+    <main>
+        <p>
+            This simulation uses the Krylov-Lanczos reduction to efficiently simulate the sparse matrix exponential, solving the Schrodinger Equation for the time evolution of a wave packet with momentum. An overview and explanation of the physics and linear algebra involved is below the graph.
+        </p>
+
+
+        <div id="controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px; width:100%;">
+            <div>
+                <label>Position (x) <span id="xVal">256</span></label><br>
+                <input id="inputX" type="range" min="0" max="511" value="256">
+            </div>
+            <div>
+                <label>Std (σ) <span id="sVal">5</span></label><br>
+                <input id="inputS" type="range" min="1" max="50" value="5">
+            </div>
+            <div>
+                <label>Momentum (p) <span id="pVal">1.00</span></label><br>
+                <input id="inputP" type="range" min="-1" max="1" step="0.01" value="1">
+            </div>
+            <div>
+                <label>Potential</label><br>
+                <select id="inputV">
+                    <option value="free">Free</option>
+                    <option value="low">Low wall</option>
+                    <option value="high">High wall</option>
+                    <option value="well">Finite well</option>
+                </select>
+            </div>
+            <div>
+                <label>Speed (dt)</label><br>
+                <select id="inputSpeed">
+                    <option value="0.3">Fast (0.3)</option>
+                    <option value="0.2" selected>Medium (0.2)</option>
+                    <option value="0.1">Slow (0.1)</option>
+                </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <button id="btnStart">Start</button>
+                <button id="btnStop" disabled>Stop</button>
+            </div>
+        </div>
+
+        <div class="chart-container" style="position: relative; width:calc(100vw - 300px);">
+            <canvas id="myChart"></canvas>
+        </div>
+        <br>
+        <h4>The Physics</h4>
+        
+        <p>This is the time-dependent Schrodinger equation: $$i \hbar \frac{d \Psi}{dt} = H\Psi$$</p>
+        <p>
+            In this equation, the wavefunction \(\Psi\) is a continous, normalizable function \(\Reals \rarr \Complex\) in a Hilbert space, an infinite-dimensional vector space.
+            The squared magnitude of this complex function is a probability distribution of a particle's possible positions. The Fourier transform of the wavefunction corresponds to a probabilty distribution of the particle's momenta.
+            In the graph, the height of the wavefunction is roughly where the particle is, and the frequency of the wavefunction is roughly its momentum.
+            The inital state for this simulation is a wave packet of the equation \(A e^{-\frac{(x-\mu)^2}{2\sigma^2}} e^{i p (x-\mu)}\). The position distribution is Gaussian around \(\mu\), and the momentum distribution is centered around the main frequency \(p\) in the imaginary exponent.
+        </p>
+        <p>
+            The equation also contains the linear operator \(H \), the Hamiltonian. It is the sum of the kinetic energy \( \frac{- \hbar^2}{2m} \frac{d^2}{dt^2} \Psi \)
+            and the potential energy \(V \Psi\), where \(V\) is a potential function multiplied element-wise to \( \Psi \).
+            This simulation approximates Psi as a finite n-dimensional vector rather than infinite. Thus, the linear operators take the form of n by n Matrices.
+            The second derivative at point \(a\) is the second finite difference \( \Psi(a-1) - 2\Psi(a) + \Psi(a+1) \), so the second derivative operator is a tridiagonal matrix with diagonals -2 and super/subdiagonals 1.
+            The element-wise multiplication by \(V\) is represented by a diagonal matrix where each diagonal element corresponds to the potential energy at each point.
+            Adding these matrices together and multiplying by scalars as required calculates the finite Hamiltonian. 
+        </p>
+        <p>
+            Theoretically, solving the time-dependent Schrodinger equation is very easy. Isolating \( \frac{d \psi}{dt} \) obtains \(\frac{d \Psi}{dt} = \frac{-i}{\hbar} H\Psi \),
+            with the well known solution of exp but involving the matrix exponent: $$\Psi = e^{\frac{-i}{\hbar} t H} \Psi_0$$
+        </p>
+        <br>
+        <h4>The Math</h4>
+        <p>
+            There are several methods to find the exponent of a matrix multiplied to some vector \(e^{A}x\). 
+            First is the Taylor expansion, which uses terms of the infinite series of the exponent \(e^{A}x = x + A x + \frac{1}{2} A^2 x + \frac{1}{6} A^3 x ...\) to approximate \(e^{A}x\).
+            This method is fast, as \(A\) does not need to be stored as a dense matrix, only the application of \(A\) on a vector is needed. This allows \(A\) to be sparse, highly useful for the large n by n but mostly zero Hamiltonian.
+            Additionally, each term can be calculated from the previous by applying \(\frac{1}{k}A\) for power k. However, the method is highly unstable and breaks due to floating point imprecision.
+            The Taylor series terms create small differences in large numbers for the higher terms. Though we cannot really use the dense form of \(e^{A}\), as we would have to store \(n^2\) elements and take \(O(n^3)\) time. 
+        </p>
+        <br>
+        <p>
+            This problem is solved by the Lanczos algorithm, which is most of the implementation challenge, and I won't go into all of it here. It approximates \(A\) is a lower dimensional subspace (Krylov Subspace) where the exponential of \(A\) is still almost the same, and finds the exponential of the lower dimensional matrix instead. It is much more stable than the Taylor series, and has time complexity \(O(m^3)\) with m around 30 instead of \(O(n^3)\) with n over 500 for explicit matrix exponent calculation. 
+            This involves creating an orthonormal basis for the Krylov Subspace of \(A\) and \(x\), the space spanned by \(x, Ax, A^2 x, A^3 x ... A^m x\). As these are the same direction as terms of the Taylor series, the subspace is very close to containing the matrix exponential.
+            Finding this orthonormal basis is mostly just Gram-Shmidt on repeated applications of \(A\). The process obtains an orthogonal matrix \(Q\) and a tridiagonal matrix \(T\) of some inner products from the orthogonalization. 
+            \(A\) is approximated:
+            $$AQ \approx TQ$$ 
+        </p>
+        <p>
+            Now, to calclate \(y = e^{-itA} x\). Note that \(T\) is symmetric, so diagonalizing \(T\) yields orthogonal matrices as eigenvectors, and that \(Q\) is orthogonal. Also we can ignore the small residual.
+            $$A = QTQ^{T}$$
+            $$y = e^{-itA}x = e^{-it QTQ^{T}}x$$
+            Diagonalizing T:
+            $$y = e^{it Q S \Lambda S^{T} Q^{T}}x$$
+            Taking the orthogonal matrices out of the function:
+            $$y = Q S e^{-it \Lambda} S^{T} Q^{T}x$$
+            From the Lanczos process, the first column of \(Q\) is just \(x\) normalized, and that all other columns of \(Q\) are orthogonal to it:
+            $$y = Q S e^{-it \Lambda} S^{T} e_1 ||x||$$
+            Because \(\Lambda \) is diagonal, the exponent can be done element-wise. The matrix applications are also very fast. This is the method used in the simulation. It is highly stable, and requires just a small Krylov dimension m.
+        </p>
+        <br>
+        <h4>Computational Notes</h4>
+        <p>
+            Once I implemented the algorithm, I made a few optimizations. First, I stored Q and the eigenvectors and eigenvalues of T after intializing them at the start. Then for each time t I reused this, as the Hamiltonian and initial state did not change.
+            <br>
+            I also found that with low Krylov dimension and after long time t, a cyclic phenomenon occured where the state at \(t = -r\) would reappear at \(t = r\). The period of this cycle, 2r, was proportional to the Krylov dimension.
+            Increasing Krylov dimension helped, but scaled time complexity by \(O(m^3)\). I do not know the cause. To fix this, I needed to redefine the initial state every few time steps. This requires recalculating Q and rediagonalizing T occasionally, but it keeps it stable.
+            <br>
+            Now, the algorithm runs for a very long time without breaking. Very nice. 
+        </p>
+        <br>
+        <h4>Resources</h4>
+        <p>
+            For a more detailed Lanczos algorithm and other sparse methods see Van Loan - Matrix Computations<br>
+            Animation done with chart.js<br>
+        </p>
+    </main>
+    <script src = "animate.js"> </script>
+</body>
+
+
