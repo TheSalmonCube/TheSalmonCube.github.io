@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/layout.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.8.1/math.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src = "calculate.js"> </script>
+    <script src="scripts/calculate.js"></script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css" 
         integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi" 
@@ -27,7 +27,6 @@
         <h1>1D Schrödinger Equation Simulation</h1>
     </header>
 
-    <!-- Sidebar will be loaded here -->
     <div id="sidebarContainer" class="sidebar"></div>
 
     <main class="main-content">
@@ -54,7 +53,7 @@
                 <label>Potential</label><br>
                 <select id="inputV">
                     <option value="free">Free</option>
-                    <option value="low">Low wall</option>
+                    <option value="low" selected>Low wall</option>
                     <option value="high">High wall</option>
                     <option value="well">Finite well</option>
                 </select>
@@ -73,9 +72,10 @@
             </div>
         </div>
 
-        <div class="chart-container" style="position: relative; width:100%;">
+        <div class="chart-container">
             <canvas id="myChart"></canvas>
         </div>
+        
         <br>
         <h4>The Physics</h4>
         
@@ -157,7 +157,8 @@
         })();
     </script>
 
-    <script src = "animate.js"> </script>
+    <script src="scripts/animate.js"></script>
 </body>
+</html>
 
 

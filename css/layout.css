@@ -73,12 +73,16 @@ header { background: var(--color-header-bg); padding: 12px 16px; }
 
 .chart-container {
     width: 100% !important;
+    aspect-ratio: 16 / 9; /* maintain aspect ratio */
+    max-width: 100%;
+    min-height: 320px;
+    transition: none;
 }
 
 .chart-container canvas {
     display: block;
     width: 100% !important;
-    height: auto !important;
+    height: auto !important; /* allow Chart.js internal sizing to match canvas drawing buffer */
 }
 
 /* Desktop layout: fixed sidebar on the left, main content with left margin */
