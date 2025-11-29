@@ -1,82 +1,136 @@
-* {
-    box-sizing: border-box; /* Makes padding and border included in the element's total width/height */
-    padding: 0;
-    margin: 0;
+/* Root variables and basic reset */
+:root {
+    --sidebar-width: 260px;
+    --color-sidebar-bg: #101010;
+    --color-sidebar-text: #c0ccc0;
+    --color-header-bg: #31aa45;
+    --color-accent: #31aa45;
+    --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--font-sans); background: #fff; color: #111; }
+
+/* Header */
+header { background: var(--color-header-bg); padding: 12px 16px; }
+
+/* SIDEBAR STYLING */
 .sidebar {
-    height: 100%; 
-    width: 250px; 
+    /* remove gap at top and ensure full-height background */
+    box-sizing: border-box;
+    width: var(--sidebar-width);
     position: fixed;
-    top: 0; 
-    right: 0; 
-    background-color: #000000; 
-    padding-top: 15px;
+    top: 0;
+    right: 0;
+    bottom: 0; /* ensure it reaches the bottom */
+    background: var(--color-sidebar-bg);
+    color: var(--color-sidebar-text);
 }
 
-.sidebar ul {
+.sidebar .sidebar-nav {
+    padding: 16px;
+    background: transparent; /* use container bg to fill entire column */
+    border-right: 1px solid rgba(255,255,255,0.03);
+}
+
+.sidebar .sidebar-nav ul {
+    list-style: none;
     font-size: 18px;
-    color: #c0ccc0;
-    list-style-type: none; /* Remove bullet points */
 }
 
-.sidebar ul li{
-    margin: 0; 
-    padding: 0;
+.sidebar .sidebar-nav li {
+    margin: 0px 0;
 }
 
-.sidebar li h1 {
+.sidebar .sidebar-nav h1 {
     padding: 10px 20px;
     text-decoration: none; /* Remove underline from links */
     font-size: 18px;
-    color: #c0ccc0;
-
-    display: table-cell;
-    white-space: nowrap;
+    color: var(--color-sidebar-text); /* heading color */
 }
 
-.sidebar li a {
-    padding: 10px 40px;
-    text-decoration: none; /* Remove underline from links */
-    font-size: 18px;
-    color: #c0ccc0;
+.sidebar .sidebar-nav a {
     display: block; /* Make the link fill the whole width of the list item */
+    padding: 10px 40px;
+    color: var(--color-sidebar-text); /* link text color */
+    text-decoration: none; /* Remove underline from links */
 }
 
-.sidebar li a:hover {
-    background-color: #31aa45; /* Darker color on hover */
-}
-
-/* GLOBAL RESETS */
-body {
-    font-family: sans-serif;
-    margin: 0; /* Important: removes default margin */
-}
-
-/* HEADER STYLING */
-header {
-    background-color: #31aa45; /* Dark background */
-    color: rgb(22, 22, 22); /* White text for contrast */
-    padding: 15px 30px; /* Space inside the header */
-    border-bottom: 5px solid #1d2530; /* Blue accent line */
-    /* If you want the header to always be visible at the top: */
-    /* position: sticky; 
-    top: 0;
-    width: 100%;
-    z-index: 1000; */
-}
-
-header h1 {
-    font-size: 24px;
-    line-height: 2;
+.sidebar .sidebar-nav a:hover {
+    background: var(--color-accent); /* Darker color on hover */
 }
 
 /* MAIN CONTENT STYLING */
-main {
+.main-content {
     /* Sets the width of the content area */
     padding: 10px;
     margin-top: 20px;
-    margin-left: 20px; 
-    margin-right: 250px;
+    margin-left: 20px;
+    margin-right: 24px; /* small default right margin when sidebar not present */
     line-height: 1.6;
+}
+
+.chart-container {
+    width: 100% !important;
+}
+
+.chart-container canvas {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Desktop layout: fixed sidebar on the left, main content with left margin */
+@media (min-width: 800px) {
+    .sidebar {
+        position: fixed;
+        top: 0; 
+        right: 0; 
+        bottom: 0; 
+        z-index: 1000; /* sit above header */
+        background: var(--color-sidebar-bg);
+    }
+
+    .sidebar .sidebar-nav {
+        height: 100%;
+        padding-bottom: 40px;
+        box-shadow: -2px 0 6px rgba(0,0,0,0.06);
+    }
+
+    .main-content {
+        margin-right: 24px; /* small right space */
+        padding: 16px;
+        max-width: calc(100% - 48px);
+    }
+
+    /* When sidebar actually contains content, reserve space for it */
+    .sidebar:not(:empty) + .main-content {
+        margin-right: calc(var(--sidebar-width) + 24px);
+        max-width: calc(100% - var(--sidebar-width) - 48px);
+    }
+}
+
+/* Mobile layout: stacked, sidebar below main */
+@media (max-width: 799px) {
+    body {
+        display: flex;
+        flex-direction: column;
+    }
+    header { order: 0; }
+    .main-content { order: 1; margin: 0; padding: 12px; }
+    .sidebar { 
+        order: 2;
+        position: relative;
+        width: 100%;
+        background: var(--color-sidebar-bg);
+    }
+    .sidebar .sidebar-nav {
+        padding: 12px 16px;
+        text-align: center; /* center labels */
+    }
+    .sidebar .sidebar-nav a {
+        display: inline-block;
+        padding: 8px 12px;
+    }
 }

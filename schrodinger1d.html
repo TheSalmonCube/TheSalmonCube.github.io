@@ -26,17 +26,11 @@
     <header>
         <h1>1D Schrödinger Equation Simulation</h1>
     </header>
-    <div class="sidebar">
-        <ul>
-            <li><a href="index.html">Home</a></li>
-            <li><h1>Physics Simulations<h1></li>
-            <li><a href="schrodinger1d.html">1D Schrodinger Evolution (Lanczos)</a></li>
-            <li><a href="schrodingersolver1d.html">1D Schrodinger Eigenvector Solver</a></li>
-            <li><h1>Other<h1></li>
-            <li><a href="about.html">Something else</a></li>
-        </ul>
-    </div>
-    <main>
+
+    <!-- Sidebar will be loaded here -->
+    <div id="sidebarContainer" class="sidebar"></div>
+
+    <main class="main-content">
         <p>
             This is a simple simulation of the Schrodinger equation's time evolution using the Lanczos processs. It simulates a one dimensional quantum particle, represented by the real and imaginary parts of the wavefunction below. With this, you can visualize how momentum is frequency space, and quantum tunneling with the different potentials you can choose from. This runs fully in the browser with JS so might be slow. Ill probably also make more complex simulations in the future, such as when solving for the initial conditions.
             Longer description below.
@@ -79,7 +73,7 @@
             </div>
         </div>
 
-        <div class="chart-container" style="position: relative; width:calc(100vw - 300px);">
+        <div class="chart-container" style="position: relative; width:100%;">
             <canvas id="myChart"></canvas>
         </div>
         <br>
@@ -101,7 +95,7 @@
             Adding these matrices together and multiplying by scalars as required calculates the finite Hamiltonian. 
         </p>
         <p>
-            Theoretically, solving the time-dependent Schrodinger equation is very easy. Isolating \( \frac{d \psi}{dt} \) obtains \(\frac{d \Psi}{dt} = \frac{-i}{\hbar} H\Psi \),
+            Theoretically, solving the time-dependent Schrodinger equation is very easy. Isolating \( \frac{d \psi}{dt} \) obtains \(\frac{d \Psi}{dt} = \frac{-i}{\hbar} H\Psi \ ),
             with the well known solution of exp but involving the matrix exponent: $$\Psi = e^{\frac{-i}{\hbar} t H} \Psi_0$$
         </p>
         <br>
@@ -150,6 +144,19 @@
             Animation done with chart.js<br>
         </p>
     </main>
+
+    <script>
+        // Fetch and inject sidebar include
+        (function(){
+            fetch('includes/sidebar.html')
+                .then(function(res){ return res.text(); })
+                .then(function(html){
+                    document.getElementById('sidebarContainer').innerHTML = html;
+                })
+                .catch(function(err){ console.error('Failed to load sidebar include:', err); });
+        })();
+    </script>
+
     <script src = "animate.js"> </script>
 </body>
 
