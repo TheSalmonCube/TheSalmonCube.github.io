@@ -70,12 +70,12 @@ function buildPotential(name) {
         V.fill(0);
         const a = Math.floor(n * 0.52734375); // ~270/512
         const b = Math.floor(n * 0.546875); // ~280/512
-        V.fill(0.5, a, b);
+        V.fill(0.25, a, b);
     } else if (name === 'high') {
         V.fill(0);
         const a = Math.floor(n * 0.52734375);
         const b = Math.floor(n * 0.546875);
-        V.fill(1, a, b);
+        V.fill(0.5, a, b);
     } else if (name === 'well') {
         V.fill(0.0);
         const a = Math.floor(n * 0.3046875); // ~156/512
