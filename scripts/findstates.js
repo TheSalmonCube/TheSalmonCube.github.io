@@ -43,7 +43,8 @@ for (let iteration = 0; iteration < iterations; iteration++) {
     // energies are the energies of corresponding vectors
     // ritzVectors are eigenvectors of T in krylov space. Need to be returned back into main space
     
-    var [k, Q, energies, ritzVectors] = calc.InitializeLanczos(KrylovVector, M, V);
+    let hamiltonian = calc.createHamiltonian(M, V);
+    var [k, Q, energies, ritzVectors] = calc.InitializeLanczos(KrylovVector, hamiltonian);
     
     let wavefunctionGroundRe = calc.MM(Q[0], [ritzVectors[energyfocus]])[0]; // Re
     let wavefunctionGroundIm = calc.MM(Q[1], [ritzVectors[energyfocus]])[0]; // Im

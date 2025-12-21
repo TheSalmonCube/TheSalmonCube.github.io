@@ -322,14 +322,58 @@ function createCalculator(size, d = 20) {
         return new SparseMatrix([size, size], Rows, Cols, Vals);
     }
 
+    function create2DHamiltonian(m, potential, xlen, ylen) {
+        unmass = -0.5 / m;
+        const Vals = [];
+        const Rows = [];
+        const Cols = [];
+
+        if (xlen * ylen !== size) {
+            throw new Error("x and Y lengths != size.");
+        }
+        if (potential.length !== size) {
+            throw new Error("Potential shape != size.");
+        }
+
+        
+        for (let i = 0; i < size; i++) {
+            // Fill diagonal: Potential + Finite difference second derivative, so -4/m (-2 in x, -2 in y) 
+            Vals.push(-4 * unmass);
+            Rows.push(i);
+            Cols.push(i);
+
+            if (i % xlen !== xlen - 1) { // Not on right edge
+                Vals.push(unmass);
+                Rows.push(i);
+                Cols.push(i + 1);
+            }
+            
+            if (i % xlen !== 0) { // Not on left edge
+                Vals.push(unmass);
+                Rows.push(i);
+                Cols.push(i - 1);
+            }
+            if (i >= xlen) { // Not on top edge
+                Vals.push(unmass);
+                Rows.push(i);
+                Cols.push(i - xlen);
+            }
+            if (i < xlen * (ylen - 1)) { // Not on bottom edge
+                Vals.push(unmass);
+                Rows.push(i);
+                Cols.push(i + xlen);
+            }
+        }
+        return new SparseMatrix([size, size], Rows, Cols, Vals);
+    }
+
     function evolve(state0, stateHamiltonian, time) {
         const newState = stateHamiltonian.expMultiply(state0, time);
         normalize(newState);
         return newState;
     }
 
-    function InitializeLanczos(state0, m, potential) {
-        const hamiltonian = createHamiltonian(m, potential);
+    function InitializeLanczos(state0, hamiltonian) {
         const [Q, T] = hamiltonian.lanczosReduce(state0);
 
         // Eigendecompose T, only have to exp the eigenvalues
@@ -435,6 +479,7 @@ function createCalculator(size, d = 20) {
         d,
         MM,
         checkOrthogonality,
+        create2DHamiltonian,
     };
 }
 

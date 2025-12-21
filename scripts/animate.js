@@ -125,7 +125,8 @@ function startSimulation() {
 
     // initialize Lanczos for first batch with current state, potential
     const potential = V || buildPotential(controlVtype);
-    mainInitializer = calc.InitializeLanczos(state, M, potential); 
+    const hamiltonian = calc.createHamiltonian(M, potential);
+    mainInitializer = calc.InitializeLanczos(state, hamiltonian); 
 
     step = 0;
     totalTime = 0;
@@ -146,7 +147,7 @@ function startSimulation() {
 
         // Every batchSteps replace with the nextbatch
         if (step >= batchSteps) {
-            mainInitializer = calc.InitializeLanczos(currentState, M, potential);
+            mainInitializer = calc.InitializeLanczos(currentState, hamiltonian);
             step = 0;
         } else {
             step ++;
