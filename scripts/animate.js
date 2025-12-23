@@ -60,6 +60,9 @@ let running = false;
 let state = null;
 let V = null;
 let mainInitializer = null; 
+let hamiltonian = null;
+let controlsDirty = true;
+let lastState = null;
 
 function buildPotential(name) {
     const n = calc.size;
@@ -110,6 +113,7 @@ function updatePreview() {
     plot.update();
     // store preview state and potential for start
     state = preview;
+    controlsDirty = true;
 }
 
 function startSimulation() { 
@@ -123,10 +127,13 @@ function startSimulation() {
     document.getElementById('btnStart').disabled = true;
     document.getElementById('btnStop').disabled = false;
 
-    // initialize Lanczos for first batch with current state, potential
-    const potential = V || buildPotential(controlVtype);
-    const hamiltonian = calc.createHamiltonian(M, potential);
-    mainInitializer = calc.InitializeLanczos(state, hamiltonian); 
+    // initialize Lanczos / Hamiltonian only when controls changed (or first time)
+    if (controlsDirty || !mainInitializer || !hamiltonian) {
+        const potential = V || buildPotential(controlVtype);
+        hamiltonian = calc.createHamiltonian(M, potential);
+        mainInitializer = calc.InitializeLanczos(state, hamiltonian);
+        controlsDirty = false;
+    }
 
     step = 0;
     totalTime = 0;
@@ -138,6 +145,8 @@ function startSimulation() {
     interval = setInterval(() => {
         // Propagate by one tStep each frame
         const currentState = calc.evolveLanczos(mainInitializer, step * dt);
+        // remember latest state so Stop can preserve it
+        lastState = currentState;
 
         // Render
         plot.data.datasets[0].data = Array.from(currentState[0]);
@@ -161,6 +170,15 @@ function stopSimulation() {
     clearInterval(interval);
     interval = null;
     running = false;
+    // if we have a last computed state, preserve it as the preview/start state
+    if (lastState) {
+        state = lastState;
+        // rebuild initializer from the preserved state so resume starts from this instant
+        if (hamiltonian) mainInitializer = calc.InitializeLanczos(state, hamiltonian);
+        // reset time counters so the saved state becomes t=0 for resumed runs
+        step = 0;
+        totalTime = 0;
+    }
     ['inputX','inputS','inputP','inputV','inputSpeed'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = false;
@@ -176,7 +194,10 @@ function setupControls() {
         const el = document.getElementById(id);
         if (!el) return;
         // Preview update in real time for sliders/select (input event)
-        el.addEventListener('input', updatePreview);
+        el.addEventListener('input', function(){
+            controlsDirty = true;
+            updatePreview();
+        });
     });
 
     document.getElementById('btnStart').addEventListener('click', startSimulation);
