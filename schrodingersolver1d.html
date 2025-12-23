@@ -31,9 +31,46 @@
     <div id="sidebarContainer" class="sidebar"></div>
 
     <main class="main-content">
+        <p>
+            This is a piece of code building on the lanczos process for the 1D Schrodinger equation. 
+            It finds the ground states and other low energy states by approximating them in the Krylov subspace of the ground state and solving the eigenvalue problem 
+            \(E \psi = H \psi\). This is for the harmonic oscillator potential \(V = x^2\), and is a completely numerical process that works for a general potential with quantized solutions.
+            However, it is dependent on the initial random guess for the solution, so restarting it will change the result, and I can probably improve this a lot with stochastic search methods. More below.
+        </p>
+
+
+
         <div class="chart-container" style="position: relative; width:100%;">
             <canvas id="myChart"></canvas>
         </div>
+
+        <p>
+            The algorithm starts with a random normalized wavefunction, a guess vector \(v\). An orthonormal basis for the m-dimensional Krylov subspace is then
+            generated with the lanczos algorithm based on \(v\) and the Hamiltonian \(H\) for the potential. The eigenvector problem, \(E \psi = H \psi\) is much easier
+            to solve in the subspace. To project the system onto the subspace (see Schrodinger 1D):
+            $$H \approx Q^T H Q, \psi \approx Q^T \psi $$
+            $$E Q^T \psi \approx Q^T H Q Q^T \psi $$
+            Let \(Q^T \psi\) be the reduced Krylov eigenvectors \(y\):
+            $$E y = Q^T H Q y $$
+            Which is the dimension of the Krylov subspace, not the main space, so is easier to solve. The approximation \(Q^T H Q\) is made through the lanczos process.
+            
+            The lowest energy state is \(\psi_0 = Q y_0\) (lowest eigenvector in Krylov space). The energy is the corresponding eigenvalue \(\lambda_0\). 
+            I then repeat this process and make \(\psi_0\) the new guess vector \(v\) that defines the subspace alongside the Hamiltonian. This gives me lower and lower energy ground states,
+            that eventually converge to the correct result from theory (Gaussian * Hermite polynomials).
+        </p>
+        <br>
+        <p>
+            This is not very efficient, especially for the excited states that I assume to be in the Krylov subspace of the ground state and the Hamiltonian.
+            I will probably improve this in the future by having multiple random starts, increasing the chance of converging on an optimal solution,
+            and doing shift and invert. The lower dimension can cause the middle energy states (eigenvalues) to be skipped, as I can only have m states.
+            Shift and invert should shift the order of the eigenvalues, so I could look for the nth eigenvalue more directly. But clearly I would need more numerical methods to get around inverting sparse \(H\). 
+            <br>
+            <br>
+
+            Overall, this naive method finds the ground state pretty well, and the other states close to the ground if you give it enough dimensions and time.
+        </p>
+
+
         <script src="scripts/findstates.js"></script>
     </main>
     

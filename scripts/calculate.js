@@ -338,7 +338,7 @@ function createCalculator(size, d = 20) {
         
         for (let i = 0; i < size; i++) {
             // Fill diagonal: Potential + Finite difference second derivative, so -4/m (-2 in x, -2 in y) 
-            Vals.push(-4 * unmass);
+            Vals.push(potential[i]-4 * unmass);
             Rows.push(i);
             Cols.push(i);
 
@@ -347,7 +347,6 @@ function createCalculator(size, d = 20) {
                 Rows.push(i);
                 Cols.push(i + 1);
             }
-            
             if (i % xlen !== 0) { // Not on left edge
                 Vals.push(unmass);
                 Rows.push(i);
@@ -434,6 +433,7 @@ function createCalculator(size, d = 20) {
 
     // Check orthogonality of a set of column vectors. Accepts arrays of Float64Array columns.
     // If matIm is null, treats vectors as real. Returns {maxOverlap, pair, isOrthogonal}.
+    // Mostly for testing.
     function checkOrthogonality(matRe, matIm = null, tol = 1e-8) {
         const cols = matRe.length;
         if (cols === 0) return { maxOverlap: 0, pair: [0, 0], isOrthogonal: true };

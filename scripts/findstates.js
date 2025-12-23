@@ -106,13 +106,6 @@ const plot = new Chart(ctx, {
             max: 0.6
             }
         },
-        animation: true,
-        plugins: {
-            subtitle: {
-                display: true,
-                text: 'T = 0'
-            }
-        },
     }
 });
 

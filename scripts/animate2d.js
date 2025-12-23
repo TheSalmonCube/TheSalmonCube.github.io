@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const CalcSize = CalcX * CalcY;
     const CalcDim = 20;
     const calc = window.createCalculator ? window.createCalculator(CalcSize, CalcDim) : null;
+    const BatchT = 8;
 
     const M = 1;
     let controlX = 25;
@@ -41,12 +42,51 @@ document.addEventListener('DOMContentLoaded', function() {
     let controlS = 3;
     let controlPX = 1;
     let controlPY = 0;
-    let controlVtype = 'free';
-    let controlTStep = 0.2;
+    let controlVtype = 'oneslit';
+    let controlTStep = 0.3;
 
     function buildPotential(vtype) {
         const V = new Array(CalcSize).fill(0);
-        
+
+        if (vtype === 'highwall') {
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    if (xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3) {
+                        V[index] = 1;
+                    }
+                }
+            }
+        } else if (vtype === 'lowwall') {
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    if (xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3) {
+                        V[index] = 0.3;
+                    }
+                }
+            }
+        } else if (vtype === 'oneslit') {
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    if ((xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3)
+                    && (yy < CalcY * 0.5 - 2 || yy > CalcY * 0.5 + 2)) {    
+                        V[index] = 1;
+                    }
+                }
+            }
+        } else if (vtype === 'twoslit') {
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    if ((xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3)
+                    && (yy < CalcY * 0.5 - 6 || (yy > CalcY * 0.5 - 2 && yy < CalcY * 0.5 + 2) || yy > CalcY * 0.5 + 6)) {    
+                        V[index] = 1;
+                    }
+                }
+            }
+        }
         return V;
     }
 
@@ -71,8 +111,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Hamiltonian and Lanczos
     let state0 = buildInitialState(controlX, controlY, controlPX, controlPY, controlS);
     const V = buildPotential(controlVtype);
-    const H = calc && calc.create2DHamiltonian ? calc.create2DHamiltonian(M, V, CalcX, CalcY) : null;
-    const Initializer = calc && calc.InitializeLanczos ? calc.InitializeLanczos(state0, H) : null;
+    const H = calc.create2DHamiltonian(M, V, CalcX, CalcY);
+    let Initializer = calc.InitializeLanczos(state0, H);
 
     // Buffers for calculation
     const magnitude = new Float64Array(CalcSize);
@@ -81,12 +121,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let t = 0;
     const colorBoost = 5.0;
 
-    function startSimulation(tval) {
+    function Simulate(tval) {
         if (!calc || !Initializer) return;
 
-        // Evolve state (expensive)
+        // COMPUTE STATE 
         const currentState = calc.evolveLanczos(Initializer, tval);
 
+        // RENDERING
         // Convert cartesian to polar for calc grid
         for (let yy = 0; yy < CalcY; yy++) {
             for (let xx = 0; xx < CalcX; xx++) {
@@ -102,6 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxXIndex = CalcX - 1;
         const maxYIndex = CalcY - 1;
         for (let py = 0; py < height; py++) {
+            // Find the closest calc grid points and interpolation weights based on distance to that point
             const fy = (py / (height - 1)) * maxYIndex * (1 - 1e-8);
             const y00 = Math.floor(fy);
             const yfrac = fy - y00;
@@ -122,9 +164,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const w01 = (1 - xfrac) * yfrac;
                 const w11 = xfrac * yfrac;
 
+                // 00      | 01
+                //         y.
+                //         fr
+                //         |
+                // -xfrac--x
+                // 10        11
+
                 const lerpmag = (w00 * magnitude[idx00] + w10 * magnitude[idx10] + w01 * magnitude[idx01] + w11 * magnitude[idx11]) * colorBoost;
 
-                // Circlular linear interpolation for phase. Based around phase at idx00
+                // Circlular linear interpolation for phase. Based around phase at idx00, if things are more than pi away, wrap them round
                 if (phase[idx10] > phase[idx00] + Math.PI) {phase[idx10] -= 2 * Math.PI};
                 if (phase[idx01] > phase[idx00] + Math.PI) {phase[idx01] -= 2 * Math.PI};
                 if (phase[idx11] > phase[idx00] + Math.PI) {phase[idx11] -= 2 * Math.PI};
@@ -134,16 +183,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 const lerpphase = w00 * phase[idx00] + w10 * phase[idx10] + w01 * phase[idx01] + w11 * phase[idx11]; 
                 
 
-
-                const i = (py * width + px) * 4;
-                const s1 = Math.sin(lerpphase);
+                // Convert to RGB
+                const i = (py * width + px) * 4; // Index in data array, same as normal index
+                const s1 = Math.sin(lerpphase); // Three phase sine waves for hue based on phase
                 const s2 = Math.sin(lerpphase + 2/3 * Math.PI);
                 const s3 = Math.sin(lerpphase + 4/3 * Math.PI);
-                data[i] = Math.min(Math.floor((s1 + 1) * 0.5 * 255 * lerpmag),255);
-                data[i + 1] = Math.min(Math.floor((s2 + 1) * 0.5 * 255 * lerpmag),255);
-                data[i + 2] = Math.min(Math.floor((s3 + 1) * 0.5 * 255 * lerpmag),255);
-                data[i + 3] = 255;
+                data[i] = Math.min(Math.floor((s1 + 1) * 0.5 * 255 * lerpmag),255); // Multiply by magnitude for brightness (and colorboost) and add to R
+                data[i + 1] = Math.min(Math.floor((s2 + 1) * 0.5 * 255 * lerpmag),255); // G
+                data[i + 2] = Math.min(Math.floor((s3 + 1) * 0.5 * 255 * lerpmag),255); // and B
+                data[i + 3] = 255; // Opacity
             }
+        }
+
+        // REINITIALIZE
+        if (t > BatchT) {
+            t = 0;
+            state0 = currentState; // Self evident
+            Initializer = calc.InitializeLanczos(state0, H); // Same hamiltonian
         }
     }
 
@@ -159,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         acc += dt;
 
         if (acc >= computeInterval) {
-            startSimulation(t);
+            Simulate(t);
             t += controlTStep;
             acc = 0;
         }
