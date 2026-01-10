@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let data = null;
 
     function resizeCanvas() {
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = 1; // Too many pixels...
         const rect = canvas.getBoundingClientRect();
         const w = Math.max(1, Math.floor(rect.width * dpr));
         const h = Math.max(1, Math.floor(rect.height * dpr));

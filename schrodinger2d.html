@@ -30,7 +30,9 @@
 
     <main class="main-content">
         <p>
-            Hello
+            This is my simulation of the discrete-grid Time-Dependent Schrodinger Equation (TDSE) for a single particle in a few different potentials. Brightness represents magnitude (the square of which is probability density) and hue represents color.
+            The Physics is relatively straightforward: Just the exponential solution \(\Psi(t) = \Psi_0 e^{-iHt/\hbar}\) where \(H = -\frac{\hbar^2}{2m}\left(\frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2}\right) + V(x, y)\)
+            using finite difference for the partial derivatives. However the math to make such a calculation fast and stable is a bit harder, so more of the details are below. This system is interactive, so use the controls to customize the conditions.
         </p>
         <div id="controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px; width:100%;">
             <div>
@@ -79,12 +81,44 @@
                 <button id="btnStop" disabled>Stop</button>
             </div>
         </div>
-        <a></a>
+        
+
 
         <div class="plot-container">
             <canvas id="2d-plot"></canvas>
         </div>
         
+        <h4>More</h4>
+        <p>
+            This builds on the methods in <a href="schrodinger1d.html">the 1D version</a>. Sparse matrices are used to represent \(H\), and the action of the sparse matrix exponent on the initial state is calculated with the Krylov subspace approximation of \(H\) and the current state \(\Psi\).
+            My implementation uses naive JS arrays so I could better understand how these processes work. To limit the impact on speed, I also used Eigs from Math.js for the main eigen decomposition in the Krylov space, a computationally heavy part.
+            It's better optimized than anything I could write for now. Since you can read my 1D TDSE or this page on github or any linear algebra book, I will just explain the specifics of this 2D implementation. 
+        </p>
+        <br>
+        <p>
+            I wrote my Lanczos code to calculate the matrix exponent action for arbitrary matrix \(H\). Therefore the main work is constructing the Hamiltonian:
+            $$H = -\frac{\hbar^2}{2m}\left(\frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2}\right) + V(x, y)$$
+            Or basically a weighted sum of the \(\nabla^2\) matrix for kinetic energy and \(V\) matrix for potential. For my \(x\) by \(y\) grid, the Hamiltonian is a sparse matrix \(xy\) by \(xy\).
+            The potential \(V\) is multiplied element-wise with the wavefunction at each point, so is a diagonal matrix with \(v_{xy,xy} = V(x,y)\) and its elements are added to the sparse matrix in CSR format.
+            The kinetic \(\nabla^2\) is a second finite difference operator: For each point, it applys this filter centered around the point:
+            $$\begin{pmatrix} 
+            0 & 1 & 0 \\ 
+            1 & -4 & 1 \\ 
+            0 & 1 & 0 
+            \end{pmatrix}$$
+            So \(\nabla^2_{xy,xy} = -4\) along the diagonal, and \(\nabla^2_{xy,(x \pm 1)y} = \nabla^2_{xy,x(y \pm 1)} = 1\) beside the diagonal. Note, however it is not tridiagonal as grid points adjacent in the y direction are not adjacent in the matrix.
+            The linear combination of these two yields the sparse \(H\).
+        </p>
+        <br>
+        <p>
+            I then put this through the framework I built for the 1D TDSE, which gives calculates each state and renders it. As with before, I had to reinitialize the Lanczos process every 20 or so time steps, otherwise the current state fell out of the Krylov space. This is slightly intensive if the CPU is less powerful unfortunately. 
+        </p>
+        <br>
+        <p>
+            Finally, rendering: Without writing a shader (potentially making it worse) I used the JS canvas and wrote to the buffer with a loop over each pixel. Most pixels aren't grid points
+            (in this demonstration I use 5000, a 50 by 100 grid), so the other pixels are linearly interpolated in 2 dimensions between the 4 nearest grid points. I think it looks really cool, but with highly pixelated screens it starts to lag. I probably should write a shader.
+        </p>
+
 
         <script src="scripts/animate2d.js"></script>
 
