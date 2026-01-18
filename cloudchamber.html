@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Chamber</title>
+    <link rel="stylesheet" href="css/layout.css">
+</head>
+<body>
+    <header>
+        <h1>Cloud Chamber Project Notes</h1>
+    </header>
+    
+    <div id="sidebarContainer" class="sidebar"></div>
+
+    <main class="main-content">
+        <p>
+            Nothing here yet
+        </p>
+        <a></a>
+    </main>
+
+    <script>
+        (function(){
+            fetch('includes/sidebar.html')
+                .then(function(res){ return res.text(); })
+                .then(function(html){ document.getElementById('sidebarContainer').innerHTML = html; })
+                .catch(function(err){ console.error('Failed to load sidebar include:', err); });
+        })();
+    </script>
+
+</body>

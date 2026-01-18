@@ -1,35 +1,16 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const canvas = document.getElementById('2d-plot');
+    const canvas = document.getElementById('2p-plot');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
 
-    // Canvas dynamic size (internal buffer) will be set in resizeCanvas()
+    // Canvas size
     let width = 0, height = 0;
     let imageData = null;
     let data = null;
-
-    function resizeCanvas() {
-        const dpr = 1; // Too many pixels...
-        const rect = canvas.getBoundingClientRect();
-        const w = Math.max(1, Math.floor(rect.width * dpr));
-        const h = Math.max(1, Math.floor(rect.height * dpr));
-        if (w === width && h === height) return;
-        width = w; height = h;
-        canvas.width = width;
-        canvas.height = height;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
-        ctx.setTransform(1,0,0,1,0,0);
-        imageData = ctx.createImageData(width, height);
-        data = imageData.data;
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-    window.addEventListener('orientationchange', resizeCanvas);
-    resizeCanvas();
-
+    
     // Constants - Simulation grid
-    const CalcX = 100;
+    // In this context, X and Y refer to two different particles' 1D positions in configuration space.
+    const CalcX = 50;
     const CalcY = 50;
     const CalcSize = CalcX * CalcY;
     const CalcDim = 20;
@@ -40,15 +21,45 @@ document.addEventListener('DOMContentLoaded', function() {
     const M = 1;
     let controlX = 25;
     let controlY = 25;
-    let controlS = 3;
+    let controlSX = 3;
+    let controlSY = 3;
     let controlPX = 0.75;
-    let controlPY = 0;
-    let controlVtype = 'oneslit';
+    let controlPY = 0.75;
+    let controlVtype = 'free';
     let controlTStep = 0.3;
 
     // Constants - Rendering and animation
     let t = 0;
     const colorBoost = 7.0;
+
+    // ensure imageData and data are initialized and canvas sized to aspect ratio
+    function resizeAndInit() {
+        // Make the canvas half the width of the <main> section and keep it square
+        const mainEl = document.querySelector('main') || document.body;
+        const mainRect = mainEl.getBoundingClientRect();
+        const canvasSize = Math.max(200, Math.floor(mainRect.width * 0.5));
+        if (canvas.width === canvasSize && canvas.height === canvasSize && imageData) {
+            width = canvas.width;
+            height = canvas.height;
+            return;
+        }
+        canvas.width = canvasSize;
+        canvas.height = canvasSize;
+        width = canvas.width;
+        height = canvas.height;
+        // disable smoothing
+        if (ctx.imageSmoothingEnabled !== undefined) ctx.imageSmoothingEnabled = false;
+        imageData = ctx.createImageData(width, height);
+        data = imageData.data;
+    }
+
+    // Recompute buffer 
+    window.addEventListener('resize', function() {
+        resizeAndInit();
+        if (!running) updatePreview();
+    });
+
+    // Now we copy paste the 2D version which is equivalent to two particles in 1D each. Now nice is that?
 
     // Buffers for calculation
     const magnitude = new Float64Array(CalcSize);
@@ -56,9 +67,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Render from current magnitude/phase buffers, interpolate calculated grid, apply overlay, and add to pixel buffer
     function renderFromGrid() {
-        if (!imageData) return;
-        const maxXIndex = CalcX - 1;
-        const maxYIndex = CalcY - 1;
+        if (!imageData) {
+            resizeAndInit();
+            if (!imageData) return;
+        }
+         const maxXIndex = CalcX - 1;
+         const maxYIndex = CalcY - 1;
 
         // 1. Determine interpolation indices and weights (2D lerp)
         for (let py = 0; py < height; py++) {
@@ -136,43 +150,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function buildPotential(vtype) {
         const V = new Array(CalcSize).fill(0);
-
-        if (vtype === 'highwall') {
-            for (let yy = 0; yy < CalcY; yy++) {
-                for (let xx = 0; xx < CalcX; xx++) {
+        // Interactive potentials V(X,Y) or V(x1,x2). If they are coupled, they represent interaction potentials between the two particles. 
+        // Otherwise they are independent (seperable) and V = Vx(x)Vy(y)
+        if (vtype === 'free') {
+            // Free particle, V = 0 everywhere
+        } else if (vtype === 'well') {
+            // Independent well for each particle
+            for (let xx = 0; xx < CalcX; xx++) {
+                for (let yy = 0; yy < CalcY; yy++) {
                     const index = yy * CalcX + xx;
-                    if (xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3) {
-                        V[index] = 1;
-                    }
+                    if ((Math.abs(xx-25) > 15) || (Math.abs(yy-25) > 15)) {V[index] = 1}  
                 }
             }
-        } else if (vtype === 'lowwall') {
-            for (let yy = 0; yy < CalcY; yy++) {
-                for (let xx = 0; xx < CalcX; xx++) {
+        } else if (vtype === 'attraction') {
+            // Coupled inverse distance attraction
+            for (let xx = 0; xx < CalcX; xx++) {
+                for (let yy = 0; yy < CalcY; yy++) {
                     const index = yy * CalcX + xx;
-                    if (xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3) {
-                        V[index] = 0.3;
-                    }
+                    const r = Math.abs(xx - yy)
+                    V[index] = -2/(r+1)
                 }
             }
-        } else if (vtype === 'oneslit') {
-            for (let yy = 0; yy < CalcY; yy++) {
-                for (let xx = 0; xx < CalcX; xx++) {
+        } else if (vtype === 'repulsion') {
+            // Coupled inverse distance attraction
+            for (let xx = 0; xx < CalcX; xx++) {
+                for (let yy = 0; yy < CalcY; yy++) {
                     const index = yy * CalcX + xx;
-                    if ((xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3)
-                    && (yy < CalcY * 0.5 - 2 || yy > CalcY * 0.5 + 2)) {    
-                        V[index] = 1;
-                    }
-                }
-            }
-        } else if (vtype === 'twoslit') {
-            for (let yy = 0; yy < CalcY; yy++) {
-                for (let xx = 0; xx < CalcX; xx++) {
-                    const index = yy * CalcX + xx;
-                    if ((xx > CalcX * 0.5 - 3 && xx < CalcX * 0.5 + 3)
-                    && (yy < CalcY * 0.5 - 6 || (yy > CalcY * 0.5 - 2 && yy < CalcY * 0.5 + 2) || yy > CalcY * 0.5 + 6)) {    
-                        V[index] = 1;
-                    }
+                    const r = Math.abs(xx - yy)
+                    V[index] = 2/(r+1)
                 }
             }
         }
@@ -181,37 +186,63 @@ document.addEventListener('DOMContentLoaded', function() {
 
     V = buildPotential(controlVtype); // init
 
-    function buildInitialState(x0, y0, px, py, standard_dev) {
+    function buildInitialState(x0, y0, px, py, sx, sy) {
+        const rex = new Float64Array(CalcX);
+        const imx = new Float64Array(CalcX);
+        const rey = new Float64Array(CalcY);
+        const imy = new Float64Array(CalcY);
+        
         const re = new Float64Array(CalcSize);
         const im = new Float64Array(CalcSize);
+        for (let xx = 0; xx < CalcX; xx++) {
+            const dx = xx - x0;
+            const density = Math.exp(-0.5 * (dx * dx) / (sx * sx));
+            rex[xx] = density * Math.cos(px * dx);
+            imx[xx] = density * Math.sin(px * dx);
+        }
+        for (let yy = 0; yy < CalcY; yy++) {
+            const dy = yy - y0;
+            const density = Math.exp(-0.5 * (dy * dy) / (sy * sy));
+            rey[yy] = density * Math.cos(py * dy);
+            imy[yy] = density * Math.sin(py * dy);
+        }
+        
         for (let yy = 0; yy < CalcY; yy++) {
             for (let xx = 0; xx < CalcX; xx++) {
                 const index = yy * CalcX + xx;
-                const dx = xx - x0;
-                const dy = yy - y0;
-                const density = Math.exp(-0.5 * (dx * dx + dy * dy) / (standard_dev * standard_dev));
-                re[index] = density * Math.cos(px * dx + py * dy);
-                im[index] = density * Math.sin(px * dx + py * dy);
-            }
-        }
-        const state = [re, im];
-        if (calc && calc.normalize) calc.normalize(state);
-        return state;
-    }
+                // (a+ib)*(c+id) = (ac - bd) + i(ad + bc)
+                const a = rex[xx];
+                const b = imx[xx];
+                const c = rey[yy];
+                const d = imy[yy];
+                re[index] = a * c - b * d;
+                im[index] = a * d + b * c;
+                 // Outer product of two 1D wavefunctions to create 2D wavefunction. Particles are unentangled at t=0,
+                 // Demonstrated by seperability of wavefunction: Psi(x1,x2) = Psi1(x1) * Psi2(x2)
+                 // But of course we collapse it down to 1D arrays.
+             }
+         }
 
-    state0 = buildInitialState(controlX, controlY, controlPX, controlPY, controlS); // init
+         const state = [re, im];
+         if (calc && calc.normalize) calc.normalize(state);
+         return state;
+     }
+
+    state0 = buildInitialState(controlX, controlY, controlPX, controlPY, controlSX, controlSY); // init
 
     function readControls() {
         controlX = parseFloat(document.getElementById('inputX').value);
         controlY = parseFloat(document.getElementById('inputY').value);
-        controlS = parseFloat(document.getElementById('inputS').value);
+        controlSX = parseFloat(document.getElementById('inputSX').value);
+        controlSY = parseFloat(document.getElementById('inputSY').value);
         controlPX = parseFloat(document.getElementById('inputPX').value);
         controlPY = parseFloat(document.getElementById('inputPY').value);
         controlVtype = document.getElementById('inputV').value;
         controlTStep = parseFloat(document.getElementById('inputSpeed').value);
         document.getElementById('xVal').textContent = controlX.toFixed(1);
         document.getElementById('yVal').textContent = controlY.toFixed(1);
-        document.getElementById('sVal').textContent = controlS.toFixed(1);
+        document.getElementById('sxVal').textContent = controlSX.toFixed(1);
+        document.getElementById('syVal').textContent = controlSY.toFixed(1);
         document.getElementById('pxVal').textContent = controlPX.toFixed(2);
         document.getElementById('pyVal').textContent = controlPY.toFixed(2);
     }   
@@ -220,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (running) return;
         readControls();
         V = buildPotential(controlVtype);
-        const preview = buildInitialState(controlX, controlY, controlPX, controlPY, controlS);
+        const preview = buildInitialState(controlX, controlY, controlPX, controlPY, controlSX, controlSY);
 
         // update image (Same as in render loop)
 
@@ -235,6 +266,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         renderFromGrid();
+
+        // update side-panel charts from preview state immediately
+        try {
+            if (window.chart1Obj && window._chartXSamples) {
+                const margX = new Float64Array(CalcX);
+                const margY = new Float64Array(CalcY);
+                for (let i = 0; i < CalcX; i++) margX[i] = 0;
+                for (let i = 0; i < CalcY; i++) margY[i] = 0;
+                for (let yy = 0; yy < CalcY; yy++) {
+                    for (let xx = 0; xx < CalcX; xx++) {
+                        const index = yy * CalcX + xx;
+                        const re = preview[0][index];
+                        const im = preview[1][index];
+                        const prob = re * re + im * im;
+                        margX[xx] += prob;
+                        margY[yy] += prob;
+                    }
+                }
+                const xs = window._chartXSamples;
+                if (xs && xs.length > 0) {
+                    const len = xs.length;
+                    const arr1 = new Array(len);
+                    const arr2 = new Array(len);
+                    for (let i = 0; i < len; i++) {
+                        const xi = Math.round(i * (CalcX - 1) / (len - 1));
+                        const yi = Math.round(i * (CalcY - 1) / (len - 1));
+                        arr1[i] = { x: xs[i], y: margX[xi] };
+                        arr2[i] = { x: xs[i], y: margY[yi] };
+                    }
+                    window.chart1Obj.data.datasets[0].data = arr1;
+                    window.chart2Obj.data.datasets[0].data = arr2;
+                    try { window.chart1Obj.update('none'); } catch (e) {}
+                    try { window.chart2Obj.update('none'); } catch (e) {}
+                }
+            }
+        } catch (e) {}
 
         // store preview state for start
         state0 = preview;
@@ -260,6 +327,81 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // SIDE PANEL
+        if (window.chart1Obj && window._chartXSamples) {
+            // compute marginals (probability density sums)
+            const margX = new Float64Array(CalcX);
+            const margY = new Float64Array(CalcY);
+            for (let xx = 0; xx < CalcX; xx++) margX[xx] = 0;
+            for (let yy = 0; yy < CalcY; yy++) margY[yy] = 0;
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    const prob = magnitude[index] * magnitude[index];
+                    margX[xx] += prob;
+                    margY[yy] += prob;
+                }
+            }
+
+            // Map marginals into {x,y} arrays matching chart x-samples
+            const xs = window._chartXSamples;
+            if (xs && xs.length > 0) {
+                const len = xs.length;
+                const arr1 = new Array(len);
+                const arr2 = new Array(len);
+                for (let i = 0; i < len; i++) {
+                    // map sample index to nearest grid index
+                    const xi = Math.round(i * (CalcX - 1) / (len - 1));
+                    const yi = Math.round(i * (CalcY - 1) / (len - 1));
+                    arr1[i] = { x: xs[i], y: margX[xi] };
+                    arr2[i] = { x: xs[i], y: margY[yi] };
+                }
+                window.chart1Obj.data.datasets[0].data = arr1;
+                window.chart2Obj.data.datasets[0].data = arr2;
+                // update immediately without animation
+                try { window.chart1Obj.update('none'); } catch (e) {}
+                try { window.chart2Obj.update('none'); } catch (e) {}
+            }
+        }
+
+        // STATUS ROW
+        if (entanglementEl) {
+            const yProjRe = new Float64Array(CalcY).fill(0);
+            const yProjIm = new Float64Array(CalcY).fill(0);
+            const xProjRe = new Float64Array(CalcX).fill(0);
+            const xProjIm = new Float64Array(CalcX).fill(0);
+            
+            for (let xx = 0; xx < CalcX; xx++) {
+                for (let yy = 0; yy < CalcY; yy++) {
+                    const index = yy * CalcX + xx;
+                    yProjRe[yy] += currentState[0][index];
+                    yProjIm[yy] += currentState[1][index];
+                    xProjRe[xx] += currentState[0][index];
+                    xProjIm[xx] += currentState[1][index];
+                }
+            }
+
+            const R1approx = [new Float64Array(CalcSize), new Float64Array(CalcSize)];
+            
+            for (let yy = 0; yy < CalcY; yy++) {
+                for (let xx = 0; xx < CalcX; xx++) {
+                    const index = yy * CalcX + xx;
+                    // (a+ib)*(c+id) = (ac - bd) + i(ad + bc)
+                    const a = xProjRe[xx];
+                    const b = xProjIm[xx];
+                    const c = yProjRe[yy];
+                    const d = yProjIm[yy];
+                    R1approx[0][index] = a * c - b * d;
+                    R1approx[1][index] = a * d + b * c;
+                }
+            }
+            calc.normalize(R1approx);
+
+            const [diffRe, diffIm] = calc.dotProduct(currentState, R1approx);
+            const entanglement = 1 - Math.sqrt(diffRe * diffRe + diffIm * diffIm);
+            entanglementEl.textContent = entanglement.toFixed(2);
+        }
+
         renderFromGrid();
 
         // REINITIALIZE
@@ -269,7 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
             Initializer = calc.InitializeLanczos(state0, H); // Same hamiltonian
         }
     }
-
 
     // START SIMULATION
     function startSimulation() {
@@ -287,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btnStart) btnStart.disabled = true;
         if (btnStop) btnStop.disabled = false;
     }
-    
+
     function stopSimulation() {
         // stop but preserve H/Initializer so start resumes without rebuild
         running = false;
@@ -306,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Wire up UI controls
     (function attachUI(){
-        const inputs = ['inputX','inputY','inputS','inputPX','inputPY','inputV','inputSpeed'];
+    const inputs = ['inputX','inputY','inputSX','inputSY','inputPX','inputPY','inputV','inputSpeed'];
         // include overlay checkbox afterwards
         inputs.forEach(id => {
             const el = document.getElementById(id);
@@ -335,11 +476,17 @@ document.addEventListener('DOMContentLoaded', function() {
             startSimulation();
         });
         if (btnStop) btnStop.addEventListener('click', stopSimulation);
-        // initialize preview and button states
+        // initialize canvas, preview and button states
+        resizeAndInit();
+        // ensure preview uses correct buffer sizes
         updatePreview();
         if (btnStart) btnStart.disabled = false;
         if (btnStop) btnStop.disabled = true;
     })();
+
+    // Cache status elements
+    const statusTimeEl = document.getElementById('statusTime');
+    const entanglementEl = document.getElementById('statusEntanglement');
 
     // Animation loop 
 
@@ -348,7 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const computeInterval = 100; // ms
 
     function loop(ts) {
-        resizeCanvas(); // ensures imageData exists and matches displayed size
         const dt = ts - lastTs;
         lastTs = ts;
         acc += dt;
@@ -358,6 +504,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 Simulate(t);
                 t += controlTStep;
             }
+            // update status readouts on each compute tick
+            try {
+                if (statusTimeEl) statusTimeEl.textContent = t.toFixed(2);
+            } catch (e) {console.log(e)}
+
             acc = 0;
         }
 

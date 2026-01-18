@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two Particle TDSE</title>
+    <link rel="stylesheet" href="css/dark.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/14.8.1/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="scripts/calculate.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css" 
+        integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi" 
+        crossorigin="anonymous">
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js" 
+        integrity="sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ" 
+        crossorigin="anonymous"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js" 
+        integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" 
+        crossorigin="anonymous" 
+        onload="renderMathInElement(document.body);"></script>
+</head>
+<body>
+    <header>
+        <h1>Schrodinger Equation For Two Particles</h1>
+    </header>
+    
+    <div id="sidebarContainer" class="sidebar"></div>
+
+    <main class="main-content">
+        <p>
+            Initially uncoupled
+        </p>
+
+        <div id="controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px; width:100%;">
+            <div>
+                <label>P1 position <span id="xVal">25.0</span></label><br>
+                <input id="inputX" type="range" min="10" max="40" step = "0.1" value="25">
+            </div>
+            <div>
+                <label>P1 momentum <span id="pxVal">0.75</span></label><br>
+                <input id="inputPX" type="range" min="-1" max="1" step = "0.01" value="0.75">
+            </div>
+            <div>
+                <label>P1 spread<span id="sxVal">3.0</span></label><br>
+                <input id="inputSX" type="range" min="1" max="20" step="0.1" value="3">
+            </div>
+            <div>
+                <label>P2 position <span id="yVal">25.0</span></label><br>
+                <input id="inputY" type="range" min="10" max="40" step = "0.1" value="25">
+            </div>
+            <div>
+                <label>P2 momentum <span id="pyVal">0.0</span></label><br>
+                <input id="inputPY" type="range" min="-1" max="1" step = "0.01" value="0">
+            </div>
+            <div>
+                <label>P2 spread<span id="syVal">3.0</span></label><br>
+                <input id="inputSY" type="range" min="1" max="20" step = "0.1" value="3">
+            </div>
+            <div>
+                <label>Potential</label><br>
+                <select id="inputV">
+                    <option value="free" selected>Free</option>
+                    <option value="well">Well (independent)</option>
+                    <option value="attraction">Attraction (coupled)</option>
+                    <option value="repulsion">Repulsion (coupled)</option>
+                </select>
+            </div>
+            <div>
+                <label>Speed (dt)</label><br>
+                <select id="inputSpeed">
+                    <option value="0.3">Fast (0.3)</option>
+                    <option value="0.2" selected>Medium (0.2)</option>
+                    <option value="0.1">Slow (0.1)</option>
+                </select>
+            </div>
+            <div>
+                <label><input id="inputOverlay" type="checkbox"> Show potential overlay</label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <button id="btnStart">Start</button>
+                <button id="btnStop" disabled>Stop</button>
+            </div>
+        </div>
+
+        <style>
+            .plot-row { display:flex; gap:12px; align-items:flex-start; }
+            .plot-container { flex:0 0 50%; max-width:50%; box-sizing:border-box; position:relative; }
+            .right-panel { flex:0 0 50%; max-width:50%; box-sizing:border-box; padding-left:12px; display:flex; flex-direction:column; gap:12px; }
+
+            .plot-box { width:100%; aspect-ratio:1/1; position:relative; background:#000; }
+
+            #2p-plot { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
+            .x-axis-label { text-align:center; margin-top:6px; font-size:0.9em; color:#333; }
+            .y-axis-label { position:absolute; left:-34px; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:center; font-size:0.9em; color:#333; }
+
+            .placeholder-chart { width:100%; flex:1 1 0; background:#000; border:1px solid #222; padding:8px; box-sizing:border-box; }
+            .placeholder-chart canvas { width:100% !important; height:100% !important; display:block; }
+            /* dark axis/text for charts */
+            .placeholder-chart, .placeholder-chart * { color:#ddd; }
+        </style>
+
+        <!-- status row for runtime info -->
+        <div class="status-row" style="display:flex;gap:18px;align-items:center;margin:8px 0;font-size:0.95em;color:#ddd;">
+            <div>Time: <span id="statusTime">0.00</span></div>
+            <div>Entanglement: <span id="statusEntanglement">0.00</span></div>
+        </div>
+
+        <div class="plot-row">
+            <div class="plot-container">
+                <div class="plot-box">
+                    <canvas id="2p-plot"></canvas>
+                    <div class="y-axis-label" style="color:#eee;">Particle 2 location</div>
+                    <div class="x-axis-label" style="color:#eee;position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);">Particle 1 location</div>
+                </div>
+            </div>
+            <div class="right-panel">
+                <div class="placeholder-chart"><canvas id="chart1"></canvas></div>
+                <div class="placeholder-chart"><canvas id="chart2"></canvas></div>
+            </div>
+        </div>
+
+        <script>
+            // create two dark-themed line charts and expose them on window
+            document.addEventListener('DOMContentLoaded', function(){
+                try {
+                    // helper to build initial data points (x from -50 to 50 step 2)
+                    const xs = [];
+                    for (let x = -50; x <= 50; x += 2) xs.push(x);
+                    function buildData(yfunc){ return xs.map(x => ({ x: x, y: yfunc(x) })); }
+
+                    const baseOptions = {
+                        type: 'line',
+                        data: { datasets: [{ label: '', data: buildData(() => 0), borderColor: '#7eaef5', backgroundColor: 'rgba(0,0,0,0)', pointRadius: 0, borderWidth: 2 }] },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            animation: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { type: 'linear', min: -50, max: 50, ticks: { color: '#ddd' }, grid: { color: '#333' } },
+                                y: { min: 0, max: 0.5, ticks: { color: '#ddd' }, grid: { color: '#333' } }
+                            }
+                        }
+                    };
+
+                    const ctx1 = document.getElementById('chart1');
+                    const ctx2 = document.getElementById('chart2');
+                    if (ctx1) {
+                        const cfg1 = JSON.parse(JSON.stringify(baseOptions));
+                        cfg1.options.plugins.title = { display: true, text: 'P1 position probability' };
+                        cfg1.data.datasets[0].borderColor = '#7eaef5';
+                        window.chart1Obj = new Chart(ctx1.getContext('2d'), cfg1);
+                    }
+                    if (ctx2) {
+                        const cfg2 = JSON.parse(JSON.stringify(baseOptions));
+                        cfg2.options.plugins.title = { display: true, text: 'P2 position probability' };
+                        cfg2.data.datasets[0].borderColor = '#f5b67e';
+                        window.chart2Obj = new Chart(ctx2.getContext('2d'), cfg2);
+                    }
+
+                    // attach sample xs array to window for quick use by simulation updater
+                    window._chartXSamples = xs;
+                } catch (e) { console.error('Chart init error:', e); }
+            });
+        </script>
+        <br>
+        <br>
+
+        <p>
+            Bottom text
+        </p>
+
+    </main>
+
+    <script>
+        (function(){
+            fetch('includes/sidebar.html')
+                .then(function(res){ return res.text(); })
+                .then(function(html){ document.getElementById('sidebarContainer').innerHTML = html; })
+                .catch(function(err){ console.error('Failed to load sidebar include:', err); });
+        })();
+    </script>
+
+    <script src="scripts/twoparticle.js"></script>
+
+</body>
