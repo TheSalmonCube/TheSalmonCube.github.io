@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,39 +10,38 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="scripts/calculate.js"></script>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css" 
-        integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi" 
-        crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css"
+        integrity="sha384-WcoG4HRXMzYzfCgiyfrySxx90XSl2rxY5mnVY5TwtWE6KLrArNKn0T/mOgNL0Mmi" crossorigin="anonymous">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js" 
-        integrity="sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ" 
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js"
+        integrity="sha384-J+9dG2KMoiR9hqcFao0IBLwxt6zpcyN68IgwzsCSkbreXUjmNVRhPFTssqdSGjwQ"
         crossorigin="anonymous"></script>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js" 
-        integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" 
-        crossorigin="anonymous" 
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js"
+        integrity="sha384-hCXGrW6PitJEwbkoStFjeJxv+fSOOQKOPbJxSfM6G5sWZjAyWhXiTIIAmQqnlLlh" crossorigin="anonymous"
         onload="renderMathInElement(document.body);"></script>
 </head>
+
 <body>
     <header>
         <h1>Schrodinger Equation For Two Particles</h1>
     </header>
-    
+
     <div id="sidebarContainer" class="sidebar"></div>
 
     <main class="main-content">
         <p>
-            Initially uncoupled
+            <b>January 2026</b> - Details below
         </p>
 
         <div id="controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px; width:100%;">
             <div>
                 <label>P1 position <span id="xVal">25.0</span></label><br>
-                <input id="inputX" type="range" min="10" max="40" step = "0.1" value="25">
+                <input id="inputX" type="range" min="10" max="40" step="0.1" value="25">
             </div>
             <div>
                 <label>P1 momentum <span id="pxVal">0.75</span></label><br>
-                <input id="inputPX" type="range" min="-1" max="1" step = "0.01" value="0.75">
+                <input id="inputPX" type="range" min="-1" max="1" step="0.01" value="0.75">
             </div>
             <div>
                 <label>P1 spread<span id="sxVal">3.0</span></label><br>
@@ -49,15 +49,15 @@
             </div>
             <div>
                 <label>P2 position <span id="yVal">25.0</span></label><br>
-                <input id="inputY" type="range" min="10" max="40" step = "0.1" value="25">
+                <input id="inputY" type="range" min="10" max="40" step="0.1" value="25">
             </div>
             <div>
                 <label>P2 momentum <span id="pyVal">0.0</span></label><br>
-                <input id="inputPY" type="range" min="-1" max="1" step = "0.01" value="0">
+                <input id="inputPY" type="range" min="-1" max="1" step="0.01" value="0">
             </div>
             <div>
                 <label>P2 spread<span id="syVal">3.0</span></label><br>
-                <input id="inputSY" type="range" min="1" max="20" step = "0.1" value="3">
+                <input id="inputSY" type="range" min="1" max="20" step="0.1" value="3">
             </div>
             <div>
                 <label>Potential</label><br>
@@ -86,24 +86,87 @@
         </div>
 
         <style>
-            .plot-row { display:flex; gap:12px; align-items:flex-start; }
-            .plot-container { flex:0 0 50%; max-width:50%; box-sizing:border-box; position:relative; }
-            .right-panel { flex:0 0 50%; max-width:50%; box-sizing:border-box; padding-left:12px; display:flex; flex-direction:column; gap:12px; }
+            .plot-row {
+                display: flex;
+                gap: 12px;
+                align-items: flex-start;
+            }
 
-            .plot-box { width:100%; aspect-ratio:1/1; position:relative; background:#000; }
+            .plot-container {
+                flex: 0 0 50%;
+                max-width: 50%;
+                box-sizing: border-box;
+                position: relative;
+            }
 
-            #2p-plot { position:absolute; top:0; left:0; width:100%; height:100%; display:block; }
-            .x-axis-label { text-align:center; margin-top:6px; font-size:0.9em; color:#333; }
-            .y-axis-label { position:absolute; left:-34px; top:50%; transform:translateY(-50%) rotate(-90deg); transform-origin:center; font-size:0.9em; color:#333; }
+            .right-panel {
+                flex: 0 0 50%;
+                max-width: 50%;
+                box-sizing: border-box;
+                padding-left: 12px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
 
-            .placeholder-chart { width:100%; flex:1 1 0; background:#000; border:1px solid #222; padding:8px; box-sizing:border-box; }
-            .placeholder-chart canvas { width:100% !important; height:100% !important; display:block; }
+            .plot-box {
+                width: 100%;
+                aspect-ratio: 1/1;
+                position: relative;
+                background: #000;
+            }
+
+            #2p-plot {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+
+            .x-axis-label {
+                text-align: center;
+                margin-top: 6px;
+                font-size: 0.9em;
+                color: #333;
+            }
+
+            .y-axis-label {
+                position: absolute;
+                left: -34px;
+                top: 50%;
+                transform: translateY(-50%) rotate(-90deg);
+                transform-origin: center;
+                font-size: 0.9em;
+                color: #333;
+            }
+
+            .placeholder-chart {
+                width: 100%;
+                flex: 1 1 0;
+                background: #000;
+                border: 1px solid #222;
+                padding: 8px;
+                box-sizing: border-box;
+            }
+
+            .placeholder-chart canvas {
+                width: 100% !important;
+                height: 100% !important;
+                display: block;
+            }
+
             /* dark axis/text for charts */
-            .placeholder-chart, .placeholder-chart * { color:#ddd; }
+            .placeholder-chart,
+            .placeholder-chart * {
+                color: #ddd;
+            }
         </style>
 
         <!-- status row for runtime info -->
-        <div class="status-row" style="display:flex;gap:18px;align-items:center;margin:8px 0;font-size:0.95em;color:#ddd;">
+        <div class="status-row"
+            style="display:flex;gap:18px;align-items:center;margin:8px 0;font-size:0.95em;color:#ddd;">
             <div>Time: <span id="statusTime">0.00</span></div>
             <div>Entanglement: <span id="statusEntanglement">0.00</span></div>
         </div>
@@ -113,7 +176,9 @@
                 <div class="plot-box">
                     <canvas id="2p-plot"></canvas>
                     <div class="y-axis-label" style="color:#eee;">Particle 2 location</div>
-                    <div class="x-axis-label" style="color:#eee;position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);">Particle 1 location</div>
+                    <div class="x-axis-label"
+                        style="color:#eee;position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);">Particle
+                        1 location</div>
                 </div>
             </div>
             <div class="right-panel">
@@ -124,12 +189,12 @@
 
         <script>
             // create two dark-themed line charts and expose them on window
-            document.addEventListener('DOMContentLoaded', function(){
+            document.addEventListener('DOMContentLoaded', function () {
                 try {
                     // helper to build initial data points (x from -50 to 50 step 2)
                     const xs = [];
                     for (let x = -50; x <= 50; x += 2) xs.push(x);
-                    function buildData(yfunc){ return xs.map(x => ({ x: x, y: yfunc(x) })); }
+                    function buildData(yfunc) { return xs.map(x => ({ x: x, y: yfunc(x) })); }
 
                     const baseOptions = {
                         type: 'line',
@@ -170,17 +235,32 @@
         <br>
 
         <p>
-            Bottom text
+            This is a simulation of two particles each in one dimension, following the Schrodinger equation. Now,
+            potentials can be defined by the
+            relative position of two particles, rather than just where they are in space. This is very important if one
+            wants to simulate
+            any interactions. Attraction and Repulsion in the potential drop down use an approximation of Coulomb's law,
+            for example.
+            The two dimensional probability density in its complex hues can be hard to figure out, so on the right
+            there are two charts that show the expectation of each particle's position. These two cannot fully
+            describe the wavefunction due to quantum entanglement, which can be observed as occuring when there is a
+            coupled potential.
+            <br>
+            Note 1. The Entanglement: number is just \Psi - \psi_1 \psi_2, a value I made up. It is zero when particles
+            are unentangled, and
+            bigger when they are more entangled.
+            <br>
+            Note 2. The usual writeup of the math is <a href="schrodinger2d.html">here</a>.
         </p>
 
     </main>
 
     <script>
-        (function(){
+        (function () {
             fetch('includes/sidebar.html')
-                .then(function(res){ return res.text(); })
-                .then(function(html){ document.getElementById('sidebarContainer').innerHTML = html; })
-                .catch(function(err){ console.error('Failed to load sidebar include:', err); });
+                .then(function (res) { return res.text(); })
+                .then(function (html) { document.getElementById('sidebarContainer').innerHTML = html; })
+                .catch(function (err) { console.error('Failed to load sidebar include:', err); });
         })();
     </script>
 

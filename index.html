@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Main Page</title>
     <link rel="stylesheet" href="css/layout.css">
 </head>
+
 <body>
     <header>
-        <h1>cecil's interactive projects</h1>
+        <h1>Cecil's Projects</h1>
     </header>
 
     <!-- Sidebar include -->
@@ -16,18 +18,25 @@
 
     <main class="main-content">
         <p>
-            Here's what I've made
+            And usually some explanations.
         </p>
-        <a></a>
+        <br>
+        <p>
+            I started this website in November 2025, when I wanted to make some of my physics simulations interactive.
+            After deciding to learn javascript for this, I decided that there is no point keeping my projects to myself,
+            and I published the code here. These pages are as much for my memory as they are for the random viewer.
+            Even if you aren't me, you'll probably still find something interesting.
+        </p>
     </main>
 
     <script>
-        (function(){
+        (function () {
             fetch('includes/sidebar.html')
-                .then(function(res){ return res.text(); })
-                .then(function(html){ document.getElementById('sidebarContainer').innerHTML = html; })
-                .catch(function(err){ console.error('Failed to load sidebar include:', err); });
+                .then(function (res) { return res.text(); })
+                .then(function (html) { document.getElementById('sidebarContainer').innerHTML = html; })
+                .catch(function (err) { console.error('Failed to load sidebar include:', err); });
         })();
     </script>
 </body>
+
 </html>
