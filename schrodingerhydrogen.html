@@ -108,6 +108,29 @@
                 once it found the s orbitals for each principal quantum number it couldn't find any others. Therefore,
                 while my algorithm would converge on the right energies with increased grid resolution, I would need to
                 alter the method for a complete set of orbital shapes. </p>
+                <br>
+
+                <b>June 2026</b>
+                <p>
+                    I made a fully working simulation using the finite difference kinetic operator and a Coulomb
+                    potential,
+                    that can find the eigenvalues (orbital energies) and eigenvectors (orbital wavefunctions) of the
+                    Hamiltonian with
+                    the Lanczos process. The resulting energies are within 10% of the theoretical and continue to
+                    converge with grid resolution,
+                    and with a 100 by 100 by 100 grid the s/p degeneracy fixes itself. By making the initial vector
+                    uniform,
+                    it seems that my algorithm only converges on s for each principal quantum number.
+                    <br>
+                    <br>
+                    For my extended essay my simulator is complete. Because my metric is the orbital energy predictions,
+                    just the s
+                    orbitals are enough. But where's the fun in that? I will now implement block Lanczos and my the
+                    time-propagator I derived
+                    in my <a href="schrodinger1d.html">other</a> projects. My goals is to see all the orbitals in
+                    action. It should look
+                    quite nice, especially with my color visualzier.
+                </p>
     </main>
 
     <script>

@@ -138,7 +138,9 @@
         </p>
         <br>
         <p>
-            Finally, rendering: Without writing a shader (potentially making it worse) I used the JS canvas and wrote to
+            Finally, rendering: Without writing a shader (potentially making it worse: My horrible c++/GL code runs
+            slower
+            than my Python) I used the JS canvas and wrote to
             the buffer with a loop over each pixel. Most pixels aren't grid points
             (in this demonstration I use 5000, a 50 by 100 grid), so the other pixels are linearly interpolated in 2
             dimensions between the 4 nearest grid points. I think it looks really cool, but with highly pixelated
